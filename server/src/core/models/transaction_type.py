@@ -2,7 +2,6 @@ from enum import Enum
 
 
 class TransactionType(Enum):
-    """Типы транзакций"""
     TOP_UP = "top_up"              # Пополнение пользователем
     QUERY_CHARGE = "query_charge"  # Списание за запрос
     REFUND = "refund"              # Возврат средств

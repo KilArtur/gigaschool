@@ -1,14 +1,11 @@
 from datetime import datetime
 from typing import List, Optional, TYPE_CHECKING
 
-from models.user_role import UserRole
-
-if TYPE_CHECKING:
-    from models.query import Query
+from core.models.user_role import UserRole
+from core.query import Query
 
 
 class User:
-    """Модель пользователя системы"""
 
     def __init__(
         self,
@@ -58,16 +55,12 @@ class User:
     def created_at(self) -> datetime:
         return self._created_at
 
-    # Методы для проверки роли (полиморфизм)
     def is_admin(self) -> bool:
-        """Проверяет, является ли пользователь администратором"""
         return self._role == UserRole.ADMIN
 
     def is_regular(self) -> bool:
-        """Проверяет, является ли пользователь обычным пользователем"""
         return self._role == UserRole.REGULAR
 
-    # Методы работы с балансом
     def can_make_query(self, cost: float) -> bool:
         """
         Проверяет, может ли пользователь сделать запрос.
@@ -102,7 +95,6 @@ class User:
             ValueError: Если недостаточно средств или баланс отрицательный
         """
         if self.is_admin():
-            # Админы не платят, списание не происходит
             return
 
         if self._balance < 0:
@@ -132,7 +124,6 @@ class User:
 
         self._balance += amount
 
-    # Методы для администраторов
     def top_up_user_balance(self, target_user: 'User', amount: float) -> None:
         """
         Пополняет баланс другому пользователю по username.
@@ -161,13 +152,11 @@ class User:
         Returns:
             List[Query]: Список запросов пользователя
         """
-        # Будет реализовано через repository/service слой
+        #TODO реализовать через repository/service слой
         pass
 
     def deactivate(self) -> None:
-        """Деактивирует аккаунт пользователя"""
         self._is_active = False
 
     def activate(self) -> None:
-        """Активирует аккаунт пользователя"""
         self._is_active = True

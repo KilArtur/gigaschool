@@ -1,23 +1,19 @@
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING, List, Dict, Any
+from typing import Optional, List
 
-from models.query_status import QueryStatus
-from models.validation_result import ValidationResult
-from services.validators.balance_validator import BalanceValidator
-from utils.prompt_loader import get_prompt
-
-if TYPE_CHECKING:
-    from models.user import User
-    from models.document import Document
-    from services.LLMService import LLMService
-    from services.QdrantService import QdrantService
-    from services.RerankerService import RerankerService
+from core.models.query_status import QueryStatus
+from core.models.validation_result import ValidationResult
+from core.services.validators.balance_validator import BalanceValidator
+from core.user import User
+from core.document import Document
+from core.services.LLMService import LLMService
+from core.services.QdrantService import QdrantService
+from core.services.RerankerService import RerankerService
+from utils.prompt_loader import render_prompt
 
 
 class Query:
-    """Запрос пользователя к документу (каждый запрос независимый, без контекста)"""
 
-    # Константы тарификации
     COST_PER_1000_TOKENS: float = 100.0  # рублей за 1000 токенов
 
     def __init__(
@@ -40,13 +36,12 @@ class Query:
         self._question: str = question
         self._answer: Optional[str] = answer
         self._cost: float = cost
-        self._input_tokens: int = input_tokens      # Из LLMService.total_input_token
-        self._output_tokens: int = output_tokens    # Из LLMService.total_output_token
-        self._total_tokens: int = total_tokens      # input + output
+        self._input_tokens: int = input_tokens
+        self._output_tokens: int = output_tokens
+        self._total_tokens: int = total_tokens
         self._timestamp: datetime = timestamp or datetime.now()
         self._status: QueryStatus = status
 
-    # Геттеры
     @property
     def id(self) -> int:
         return self._id
@@ -108,7 +103,7 @@ class Query:
         cost = (total_tokens / 1000.0) * Query.COST_PER_1000_TOKENS
         return round(cost, 2)
 
-    def calculate_cost(self, user: 'User') -> float:
+    def calculate_cost(self, user: User) -> float:
         """
         Рассчитывает полную стоимость запроса на основе токенов.
 
@@ -122,11 +117,9 @@ class Query:
         Returns:
             float: Стоимость запроса в рублях (0 для админов)
         """
-        # Админы не платят
         if user.is_admin():
             return 0.0
 
-        # Рассчитываем по фактическим токенам
         total = self._input_tokens + self._output_tokens
         self._total_tokens = total
 
@@ -170,7 +163,6 @@ class Query:
             ValueError: Если документ не готов или баланс недостаточен
             Exception: При ошибке выполнения запроса
         """
-        # 1. Проверка документа
         if not document.is_ready_for_queries():
             raise ValueError(
                 f"Document {document.id} is not ready for queries. Status: {document.status.value}"
@@ -179,76 +171,60 @@ class Query:
         try:
             self._status = QueryStatus.PROCESSING
 
-            # 2. Получаем релевантные чанки из Qdrant
             search_results = qdrant_service.search_similar(self._question)
 
             if not search_results:
                 raise ValueError("No relevant chunks found in the document")
 
-            # 3. Извлекаем тексты для реранкинга
             documents_for_rerank = [result['text'] for result in search_results]
 
-            # 4. Переранжируем результаты
             reranked_results = reranker_service.rerank(
                 query=self._question,
                 documents=documents_for_rerank
             )
 
-            # 5. Формируем контекст из топовых результатов
             context = self._build_context(reranked_results)
 
-            # 6. Формируем промпт
-            prompt = get_prompt("rag_answer_prompt").format(
+            prompt = render_prompt("rag_answer_prompt").format(
                 data=context,
                 question=self._question
             )
 
-            # 7. Сбрасываем счетчики токенов перед запросом
             llm_service.total_input_token = 0
             llm_service.total_output_token = 0
 
-            # 8. Выполняем запрос к LLM
             answer = await llm_service.fetch_completion(prompt)
 
-            # 9. Получаем токены из LLMService
             self._input_tokens = llm_service.total_input_token
             self._output_tokens = llm_service.total_output_token
             self._total_tokens = self._input_tokens + self._output_tokens
 
-            # 10. Рассчитываем стоимость
             cost = self.calculate_cost(user)
             self._cost = cost
 
-            # 11. Валидируем баланс ДО списания
             balance_validator = BalanceValidator(user, cost)
             validation_result: ValidationResult = balance_validator.validate()
 
             if not validation_result.is_valid:
                 self._status = QueryStatus.FAILED
-                # Не записываем ответ в историю, т.к. баланс недостаточен
                 raise ValueError(
                     f"Cannot complete query: {validation_result.get_error_message()}"
                 )
 
-            # 12. Списываем средства (только если баланс положительный!)
             user.deduct_balance(cost)
 
-            # 13. Сохраняем результат
             self._answer = answer
             self._status = QueryStatus.COMPLETED
 
             return answer
 
         except ValueError as e:
-            # Ошибки валидации - средства не списывались
             self._status = QueryStatus.FAILED
             raise
 
         except Exception as e:
-            # Ошибки выполнения LLM - возвращаем средства если списали
             self._status = QueryStatus.FAILED
             if hasattr(self, '_cost') and self._cost > 0:
-                # Проверяем, были ли уже списаны средства
                 user.add_balance(self._cost)
             raise Exception(f"Query execution failed: {str(e)}")
 
@@ -269,7 +245,6 @@ class Query:
         return "\n".join(context_parts)
 
     def mark_as_failed(self, error_message: str = "") -> None:
-        """Помечает запрос как проваленный"""
         self._status = QueryStatus.FAILED
         if error_message:
             self._answer = f"Error: {error_message}"

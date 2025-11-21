@@ -4,7 +4,7 @@ import graypy
 import logging
 
 from config.Config import CONFIG
-from services.context_var import request_id_var
+from core.services.context_var import request_id_var
 
 
 class GraylogFormatter(logging.Formatter):

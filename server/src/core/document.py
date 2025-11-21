@@ -1,17 +1,16 @@
 from datetime import datetime
-from typing import Optional, TYPE_CHECKING
+from typing import Optional
 
-from models.document_status import DocumentStatus
-from models.validation_result import ValidationResult
-from services.validators.document_validator import DocumentValidator
+import fitz
 
-if TYPE_CHECKING:
-    from services.СhunksService import ChunkProcessor
-    from services.QdrantService import QdrantService
+from core.models.document_status import DocumentStatus
+from core.models.validation_result import ValidationResult
+from core.services.validators.document_validator import DocumentValidator
+from core.services.СhunksService import ChunkProcessor
+from core.services.QdrantService import QdrantService
 
 
 class Document:
-    """Загруженный PDF документ для RAG"""
 
     def __init__(
         self,
@@ -35,7 +34,6 @@ class Document:
         self._page_count: int = page_count
         self._file_size_mb: float = file_size_mb
 
-    # Геттеры
     @property
     def id(self) -> int:
         return self._id
@@ -93,7 +91,6 @@ class Document:
         return self._status == DocumentStatus.READY
 
     def mark_as_processing(self) -> None:
-        """Помечает документ как обрабатываемый"""
         self._status = DocumentStatus.PROCESSING
 
     def mark_as_ready(self, chunk_count: int, page_count: int) -> None:
@@ -109,13 +106,12 @@ class Document:
         self._page_count = page_count
 
     def mark_as_failed(self) -> None:
-        """Помечает документ как проваленный при обработке"""
         self._status = DocumentStatus.FAILED
 
     def process_for_rag(
         self,
-        chunk_processor: 'ChunkProcessor',
-        qdrant_service: 'QdrantService'
+        chunk_processor: ChunkProcessor,
+        qdrant_service: QdrantService
     ) -> None:
         """
         Обрабатывает документ для RAG:
@@ -131,7 +127,6 @@ class Document:
             ValueError: Если валидация не прошла
             Exception: При ошибке обработки
         """
-        # 1. Валидация
         validation_result = self.validate()
         if not validation_result.is_valid:
             self.mark_as_failed()
@@ -142,23 +137,18 @@ class Document:
         try:
             self.mark_as_processing()
 
-            # 2. Обработка PDF и создание чанков
             chunks = chunk_processor.process_pdf(self._file_path, title=self._filename)
 
             if not chunks:
                 self.mark_as_failed()
                 raise ValueError("Failed to process PDF: no chunks created")
 
-            # 3. Загрузка чанков в Qdrant (embeddings создаются внутри add_chunks_directly)
             uploaded_count = qdrant_service.add_chunks_directly(chunks)
 
-            # 4. Получаем количество страниц
-            import fitz
             doc = fitz.open(self._file_path)
             page_count = len(doc)
             doc.close()
 
-            # 5. Обновляем статус
             self.mark_as_ready(chunk_count=uploaded_count, page_count=page_count)
 
         except Exception as e:

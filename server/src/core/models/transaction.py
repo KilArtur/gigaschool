@@ -1,8 +1,8 @@
 from datetime import datetime
 from typing import Optional
 
-from models.transaction_type import TransactionType
-from models.transaction_status import TransactionStatus
+from core.models.transaction_type import TransactionType
+from core.models.transaction_status import TransactionStatus
 
 
 class Transaction:

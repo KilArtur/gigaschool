@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING
 
-from services.abc.BaseValidator import BaseValidator
-from models.validation_result import ValidationResult
+from core.services.abc.BaseValidator import BaseValidator
+from core.models.validation_result import ValidationResult
 
 if TYPE_CHECKING:
-    from models.user import User
+    from core.user import User
 
 
 class BalanceValidator(BaseValidator):

@@ -2,8 +2,8 @@ import os
 from typing import List
 import fitz  # PyMuPDF
 
-from services.abc.BaseValidator import BaseValidator
-from models.validation_result import ValidationResult
+from core.services.abc.BaseValidator import BaseValidator
+from core.models.validation_result import ValidationResult
 
 
 class DocumentValidator(BaseValidator):

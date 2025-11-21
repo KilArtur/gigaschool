@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from models.validation_result import ValidationResult
+from core.models.validation_result import ValidationResult
 
 
 class BaseValidator(ABC):
