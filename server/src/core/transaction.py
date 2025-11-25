@@ -30,7 +30,6 @@ class Transaction:
         self._related_query_id: Optional[int] = related_query_id
         self._processed_by_admin_id: Optional[int] = processed_by_admin_id
 
-    # Геттеры
     @property
     def id(self) -> int:
         return self._id
@@ -67,7 +66,6 @@ class Transaction:
     def processed_by_admin_id(self) -> Optional[int]:
         return self._processed_by_admin_id
 
-    # Методы обработки
     def process(self) -> None:
         """Помечает транзакцию как завершенную"""
         self._status = TransactionStatus.COMPLETED
