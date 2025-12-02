@@ -1,0 +1,59 @@
+version: "3.8"
+
+services:
+  app:
+    build: ./server
+    command: uvicorn main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./server:/app
+    env_file:
+      - .env
+    ports:
+      - "8000:8000"
+    depends_on:
+      - database
+      - rabbitmq
+    networks:
+      - gigaschool-network
+
+  web-proxy:
+    image: nginx:latest
+    ports:
+      - "80:80"
+      - "443:443"
+    depends_on:
+      - app
+    networks:
+      - gigaschool-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    restart: on-failure
+    env_file:
+      - .env
+    networks:
+      - gigaschool-network
+
+  database:
+    image: postgres:16
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    networks:
+      - gigaschool-network
+
+volumes:
+  rabbitmq_data:
+  postgres_data:
+
+networks:
+  gigaschool-network:
+    driver: bridge

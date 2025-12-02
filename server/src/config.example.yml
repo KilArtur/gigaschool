@@ -1,0 +1,38 @@
+llm:
+  url: https://caila.io/api/adapters/openai
+  model: just-ai/vllm-Qwen2.5-32B-Instruct-fp8-dynamic
+  token: TOKEN
+
+chunks:
+  chunk_size: 512
+  overlap: 100
+  model_name: intfloat/multilingual-e5-base
+  encoder_max_seq_length: 512
+
+qdrant:
+  host: HOST
+  port: 6333
+  collection_name: COLLECTION_NAME
+  model_name: intfloat/multilingual-e5-base
+  vector_size: 768
+  top_samples: 20
+  batch_size: 100
+
+reranker:
+  model_name: cross-encoder/mmarco-mMiniLMv2-L12-H384-v1
+  top_samples: 5
+
+logging:
+    app_name: APP_NAME
+    graylog:
+      enabled: false
+      udp: false
+      host: 0.0.0.0
+      port: 12201
+    console:
+      enabled: true
+    root_level: INFO
+    levels:
+      httpx: WARN
+      openai: WARN
+      uvicorn.access: WARN
