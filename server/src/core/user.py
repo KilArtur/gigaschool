@@ -2,7 +2,9 @@ from datetime import datetime
 from typing import List, Optional, TYPE_CHECKING
 
 from core.models.user_role import UserRole
-from core.query import Query
+
+if TYPE_CHECKING:
+    from core.query import Query
 
 
 class User:

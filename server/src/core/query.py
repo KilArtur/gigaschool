@@ -1,15 +1,17 @@
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional, List, TYPE_CHECKING
 
 from core.models.query_status import QueryStatus
 from core.models.validation_result import ValidationResult
 from core.services.validators.balance_validator import BalanceValidator
-from core.user import User
-from core.document import Document
 from core.services.LLMService import LLMService
 from core.services.QdrantService import QdrantService
 from core.services.RerankerService import RerankerService
 from utils.prompt_loader import render_prompt
+
+if TYPE_CHECKING:
+    from core.user import User
+    from core.document import Document
 
 
 class Query:
@@ -103,7 +105,7 @@ class Query:
         cost = (total_tokens / 1000.0) * Query.COST_PER_1000_TOKENS
         return round(cost, 2)
 
-    def calculate_cost(self, user: User) -> float:
+    def calculate_cost(self, user: 'User') -> float:
         """
         Рассчитывает полную стоимость запроса на основе токенов.
 

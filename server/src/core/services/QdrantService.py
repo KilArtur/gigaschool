@@ -6,7 +6,7 @@ import json
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
-from sentence_transformers import SentenceTransformer
+# from sentence_transformers import SentenceTransformer
 
 from utils.logger import get_logger
 from config.Config import CONFIG
@@ -31,7 +31,7 @@ class QdrantService:
             raise
 
         try:
-            self.model = SentenceTransformer(self.model_name)
+            # self.model = SentenceTransformer(self.model_name)
             log.info(f"Модель {self.model_name} загружена успешно")
         except Exception as e:
             log.error(f"Ошибка загрузки модели {self.model_name}: {e}")
