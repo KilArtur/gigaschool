@@ -6,7 +6,6 @@ import json
 
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
-# from sentence_transformers import SentenceTransformer
 
 from utils.logger import get_logger
 from config.Config import CONFIG
@@ -30,12 +29,7 @@ class QdrantService:
             log.error(f"Ошибка подключения к Qdrant: {e}")
             raise
 
-        try:
-            # self.model = SentenceTransformer(self.model_name)
-            log.info(f"Модель {self.model_name} загружена успешно")
-        except Exception as e:
-            log.error(f"Ошибка загрузки модели {self.model_name}: {e}")
-            raise
+        log.info(f"Модель {self.model_name} загружена успешно")
 
         self._ensure_collection_exists()
 
@@ -241,11 +235,6 @@ class QdrantService:
 async def main():
     qdrant_service = QdrantService()
 
-    # chunks_dir = "../../data/chunks"
-    # qdrant_service.clear_all_chunks()
-    # qdrant_service.add_vectorized_chunks(chunks_dir)
-    # print("Чанки успешно добавлены в векторную БД")
-    #
     info = qdrant_service.get_collection_info()
     print(info)
 

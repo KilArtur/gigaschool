@@ -2,11 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import List
 from database.models.user_model import UserModel
-from database.repositories import QueryRepository, DocumentRepository, UserRepository
+from database.repositories import QueryRepository, DocumentRepository, UserRepository, TransactionRepository
 from endpoints.dependencies import get_db, get_current_user
 from endpoints.models.query import QueryRequest, QueryResponse
 from core.models.query_status import QueryStatus
 from core.models.document_status import DocumentStatus
+from core.models.transaction_type import TransactionType
+from core.models.transaction_status import TransactionStatus
 from core.query import Query
 from core.user import User
 from core.document import Document
@@ -23,6 +25,7 @@ async def create_query(
     document_repo = DocumentRepository(db)
     query_repo = QueryRepository(db)
     user_repo = UserRepository(db)
+    transaction_repo = TransactionRepository(db)
 
     document_model = document_repo.get_by_id(request.document_id)
 
@@ -81,6 +84,12 @@ async def create_query(
         question=request.question
     )
 
+    if not user.is_admin() and current_user.balance < 0:
+        raise HTTPException(
+            status_code=status.HTTP_402_PAYMENT_REQUIRED,
+            detail=f"Insufficient balance. Current balance: {current_user.balance:.2f}. Please top up your account."
+        )
+
     try:
         answer = await query.execute(
             user=user,
@@ -99,6 +108,16 @@ async def create_query(
         query_repo.update(query_model)
 
         user_repo.update_balance(current_user.id, current_user.balance - query.cost)
+
+        if query.cost > 0:
+            transaction_repo.create(
+                user_id=current_user.id,
+                amount=query.cost,
+                transaction_type=TransactionType.QUERY_CHARGE,
+                status=TransactionStatus.COMPLETED,
+                description=f"Query #{query_model.id}: {request.question[:50]}...",
+                related_query_id=query_model.id
+            )
 
     except Exception as e:
         query_model.status = QueryStatus.FAILED
