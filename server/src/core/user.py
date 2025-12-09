@@ -82,6 +82,13 @@ class User:
 
         return self._is_active and self._balance >= 0 and self._balance >= cost
 
+    def deduct_balance(self, amount: float) -> None:
+        if self.is_admin():
+            return
+        self._balance -= amount
+
+    def add_balance(self, amount: float) -> None:
+        self._balance += amount
 
     def get_query_history(self) -> List['Query']:
         """

@@ -12,6 +12,7 @@ from core.models.transaction_status import TransactionStatus
 from core.query import Query
 from core.user import User
 from core.document import Document
+from core.services.RabbitMQService import RabbitMQService
 
 router = APIRouter(prefix="/queries", tags=["Queries"])
 
@@ -91,33 +92,8 @@ async def create_query(
         )
 
     try:
-        answer = await query.execute(
-            user=user,
-            document=document,
-            llm_service=None,
-            qdrant_service=None,
-            reranker_service=None
-        )
-
-        query_model.answer = answer
-        query_model.status = QueryStatus.COMPLETED
-        query_model.cost = query.cost
-        query_model.input_tokens = query.input_tokens
-        query_model.output_tokens = query.output_tokens
-        query_model.total_tokens = query.total_tokens
-        query_repo.update(query_model)
-
-        user_repo.update_balance(current_user.id, current_user.balance - query.cost)
-
-        if query.cost > 0:
-            transaction_repo.create(
-                user_id=current_user.id,
-                amount=query.cost,
-                transaction_type=TransactionType.QUERY_CHARGE,
-                status=TransactionStatus.COMPLETED,
-                description=f"Query #{query_model.id}: {request.question[:50]}...",
-                related_query_id=query_model.id
-            )
+        rabbitmq_service = RabbitMQService()
+        await rabbitmq_service.publish_query_task(query_model.id)
 
     except Exception as e:
         query_model.status = QueryStatus.FAILED

@@ -1,4 +1,6 @@
 from typing import List, Tuple
+import numpy as np
+from sentence_transformers import CrossEncoder
 
 from config.Config import CONFIG
 from utils.logger import get_logger
@@ -10,13 +12,23 @@ class RerankerService:
     def __init__(self):
         self.model_name = CONFIG.reranker.model_name
         self.top_samples = CONFIG.reranker.top_samples
-        log.info(f"Модель {self.model_name} загружена успешно")
+
+        try:
+            self.model = CrossEncoder(self.model_name)
+            log.info(f"Модель {self.model_name} загружена успешно")
+        except Exception as e:
+            log.error(f"Ошибка загрузки модели {self.model_name}: {e}")
+            raise
 
     def rerank(self, query: str, documents: List[str]) -> List[Tuple[int, str, float]]:
+        pairs = [[query, doc] for doc in documents]
+        scores = self.model.predict(pairs)
+        ranked_indices = np.argsort(scores)[::-1]
+
         results = [
-            (idx, doc, 0.0)
-            for idx, doc in enumerate(documents[:self.top_samples])
+            (idx, documents[idx], float(scores[idx]))
+            for idx in ranked_indices[:self.top_samples]
         ]
 
-        log.info(f"Возвращено {len(results)} документов")
+        log.info(f"Переранжировано {len(results)} документов")
         return results
