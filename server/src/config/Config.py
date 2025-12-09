@@ -44,6 +44,14 @@ class RerankerConfig:
     top_samples: int
 
 @dataclass
+class RabbitMQConfig:
+    host: str
+    port: int
+    user: str
+    password: str
+    queue_name: str
+
+@dataclass
 class LLMConfig:
     url: str
     token: str
@@ -55,6 +63,7 @@ class Config:
     chunks: ChunksConfig
     qdrant: QdrantConfig
     reranker: RerankerConfig
+    rabbitmq: RabbitMQConfig
     logging: LoggingConfig
 
 class ConfigLoader:
