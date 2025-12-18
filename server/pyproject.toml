@@ -21,6 +21,9 @@ dependencies = [
     "passlib[bcrypt]>=1.7.4",
     "pydantic[email]>=2.0.0",
     "aio-pika>=9.3.0",
+    "langchain-gigachat>=0.3.12",
+    "sentence_transformers>=5.2.0",
+
 ]
 
 [tool.ruff]
