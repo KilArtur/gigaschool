@@ -50,6 +50,40 @@ services:
     networks:
       - gigaschool-network
 
+  worker-1:
+    build: ./server
+    command: python src/worker.py
+    container_name: gigaschool-worker-1
+    depends_on:
+      - database
+      - rabbitmq
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/src
+    volumes:
+      - ./server:/app
+    networks:
+      - gigaschool-network
+    restart: on-failure
+
+  worker-2:
+    build: ./server
+    command: python src/worker.py
+    container_name: gigaschool-worker-2
+    depends_on:
+      - database
+      - rabbitmq
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/src
+    volumes:
+      - ./server:/app
+    networks:
+      - gigaschool-network
+    restart: on-failure
+
 volumes:
   rabbitmq_data:
   postgres_data:

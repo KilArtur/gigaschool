@@ -241,11 +241,6 @@ class QdrantService:
 async def main():
     qdrant_service = QdrantService()
 
-    # chunks_dir = "../../data/chunks"
-    # qdrant_service.clear_all_chunks()
-    # qdrant_service.add_vectorized_chunks(chunks_dir)
-    # print("Чанки успешно добавлены в векторную БД")
-    #
     info = qdrant_service.get_collection_info()
     print(info)
 

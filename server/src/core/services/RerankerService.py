@@ -1,7 +1,6 @@
-import numpy as np
-
-from sentence_transformers import CrossEncoder
 from typing import List, Tuple
+import numpy as np
+from sentence_transformers import CrossEncoder
 
 from config.Config import CONFIG
 from utils.logger import get_logger
@@ -22,20 +21,14 @@ class RerankerService:
             raise
 
     def rerank(self, query: str, documents: List[str]) -> List[Tuple[int, str, float]]:
-
         pairs = [[query, doc] for doc in documents]
-
         scores = self.model.predict(pairs)
-
         ranked_indices = np.argsort(scores)[::-1]
 
         results = [
-            (idx, documents[idx], scores[idx])
+            (idx, documents[idx], float(scores[idx]))
             for idx in ranked_indices[:self.top_samples]
         ]
 
-        log.info("Результаты после реранкинга:")
-        for i, (original_idx, doc_text, score) in enumerate(results[:5], 1):
-            log.info(f"{i} чанк. [Score: {score:.4f}] (Исходный индекс: {original_idx})")
-
+        log.info(f"Переранжировано {len(results)} документов")
         return results
