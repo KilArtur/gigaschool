@@ -16,6 +16,18 @@ services:
     networks:
       - gigaschool-network
 
+  frontend:
+    build: ./frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - app
+    networks:
+      - gigaschool-network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
   web-proxy:
     image: nginx:latest
     ports:
@@ -23,6 +35,9 @@ services:
       - "443:443"
     depends_on:
       - app
+      - frontend
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
     networks:
       - gigaschool-network
 
@@ -49,6 +64,40 @@ services:
       - "5432:5432"
     networks:
       - gigaschool-network
+
+  worker-1:
+    build: ./server
+    command: python src/worker.py
+    container_name: gigaschool-worker-1
+    depends_on:
+      - database
+      - rabbitmq
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/src
+    volumes:
+      - ./server:/app
+    networks:
+      - gigaschool-network
+    restart: on-failure
+
+  worker-2:
+    build: ./server
+    command: python src/worker.py
+    container_name: gigaschool-worker-2
+    depends_on:
+      - database
+      - rabbitmq
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app/src
+    volumes:
+      - ./server:/app
+    networks:
+      - gigaschool-network
+    restart: on-failure
 
 volumes:
   rabbitmq_data:
